@@ -32,25 +32,34 @@ There's also a "use bundled sample_ratings.csv" checkbox for a quick demo withou
 
 ```mermaid
 flowchart TD
-    A["You upload your ratings"] --> B["Clean the data\nkeep movies only"]
-    B --> C["Learn your taste\nfavorite genres & directors"]
-    B --> D["Pick your favorites\nyour highest-rated movies"]
-    D --> E["Find similar movies\nfor each favorite"]
-    E --> F["Combine the results\nmovies suggested more often\ncount for more"]
-    F --> G["Remove movies you've\nalready seen or are too obscure"]
-    C --> H
-    G --> I["Apply your filters\nruntime, year, genres"]
-    I --> H["Rank by fit\nhow well it matches your taste"]
-    H --> J["Keep it varied\nno more than 3 picks per\ndirector or franchise"]
-    J --> K["Show your next 10 movies"]
+    A["You upload your ratings.csv"] --> B["Clean the data\nkeep movies only, fix\nmissing/odd values"]
+
+    B --> C["Build your taste profile\navg rating per genre & per director,\nweighted down if you've only\nseen 1-2 of them"]
+
+    B --> D["Pick your favorites as seeds\nrating >= 8, or top 40\nif you have a lot"]
+    D --> E["Ask TMDB: 'people who liked\nthis also liked...' for\nevery favorite"]
+    E --> F["Tally the suggestions\nsame movie suggested by\nmultiple favorites -> counts more,\nweighted by how much you\nloved that favorite"]
+
+    F --> G["Pull full details for the\ntop-tallied candidates\ngenres, director, runtime, votes"]
+    G --> H["Drop anything you've already\nrated, or with too few votes\nto trust"]
+
+    C --> J
+    H --> I["Apply your sidebar filters\nruntime, year, genre in/out"]
+    I --> J["Score each candidate\ntally weight + genre affinity\n+ director affinity + TMDB quality"]
+    J --> K["Diversify the list\ncap at 3 picks per\ndirector or franchise"]
+    K --> L["Show your next 10\n(+ 'load 10 more' from\nthe same scored pool)"]
 ```
 
-1. **Clean the data** — keeps only real movies from your upload, ignoring TV shows and episodes.
-2. **Learn your taste** — works out your average rating, plus which genres and directors you rate consistently above or below your own average (a single one-off 10/10 doesn't skew the whole profile).
-3. **Find similar movies** — for your highest-rated movies, looks up what other viewers who liked those also enjoyed.
-4. **Combine and clean up** — movies suggested by several of your favorites score higher; anything you've already rated, or that's too obscure (very few votes), gets dropped.
-5. **Rank by fit** — combines how often a movie was suggested, how well it matches your favorite genres/directors, and its overall quality, then makes sure the final list isn't dominated by one director or franchise.
-6. **Show results** — your sidebar filters (runtime, year, genres) are applied before ranking. Results appear as cards with poster, title, year, runtime, genres, a "why" explanation, and a link to IMDb. You can load 10 more, or download the list as CSV.
+1. **Clean the data** — keeps only real movies from your upload, ignoring TV shows and episodes, and handles missing/odd values gracefully.
+2. **Build your taste profile** — your average rating, plus a per-genre and per-director average, pulled toward the overall average when you've only rated one or two of them (so a single 10/10 from an unknown director doesn't skew everything).
+3. **Pick seeds** — your highest-rated movies (rating ≥ 8, capped at your top 40) become the starting points for discovery.
+4. **Ask TMDB for similar movies** — for each seed, ask what viewers who liked it also liked/were recommended.
+5. **Tally the suggestions** — every time a movie is suggested by one of your seeds, it earns weight proportional to how much you loved that seed (rating − your average). A movie suggested by five favorites you rated 9-10 outweighs one suggested once by a movie you rated 8.
+6. **Enrich the top candidates** — pull real details (director, genres, runtime, vote count) only for the highest-tallied candidates, to keep API usage reasonable.
+7. **Drop what doesn't belong** — anything already in your ratings, or with too few TMDB votes to be a trustworthy candidate.
+8. **Filter, then score** — your sidebar filters (runtime/year/genre) are applied first; remaining candidates are scored by combining the tally weight, genre affinity, director affinity, and a small overall-quality boost from TMDB's rating.
+9. **Diversify** — the ranked list is walked top-down, skipping anything that would push a single director or franchise past 3 picks, so the final list isn't just five Nolan movies.
+10. **Show results** — top 10 appear as cards (poster, why-explanation, IMDb link); "Show me 10 more" reveals the next batch from the same scored pool instantly, no extra lookups needed.
 
 Movie data is cached on disk so re-running with the same filters is fast and doesn't repeat lookups unnecessarily.
 
