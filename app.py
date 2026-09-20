@@ -23,9 +23,11 @@ st.set_page_config(page_title="Next 10 Movies", page_icon="🎬", layout="wide")
 app_password = os.getenv("APP_PASSWORD")
 if app_password and not st.session_state.get("authenticated"):
     st.title("🎬 Next 10 Movies")
-    entered = st.text_input("This app is password-protected. Enter the password to continue:", type="password", live="300ms")
-    if entered:
-        if entered == app_password:
+    with st.form("password_gate"):
+        entered = st.text_input("This app is password-protected. Enter the password to continue:", type="password")
+        submitted = st.form_submit_button("Enter")
+    if submitted:
+        if entered.strip() == app_password.strip():
             st.session_state["authenticated"] = True
             st.rerun()
         else:
