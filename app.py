@@ -103,6 +103,11 @@ user_api_key = st.sidebar.text_input(
         "to call TMDB on your behalf — it is never saved to disk or shared with other users."
     ),
 )
+st.sidebar.caption(
+    "TMDB API keys are 100% free, no credit card or billing info required. "
+    "Sign up at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) "
+    "to get yours in under a minute."
+)
 api_key = user_api_key.strip() or server_api_key
 
 # --- Recommendations -----------------------------------------------------
