@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+
+# Your personal IMDb ratings export — never commit real user data
+movies.csv
+ratings.csv

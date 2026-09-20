@@ -1,6 +1,6 @@
 """Optional: rewrite recommendation 'why' lines using a free, open-source LLM via Groq.
 
-Groq hosts open-weight models (Gemma, Llama) and offers a free-tier API, so this
+Groq hosts open-weight models (currently gpt-oss-20b) on a free-tier API, so this
 needs no self-hosted infrastructure. Entirely optional — the app works fully
 without it, using the deterministic why-text from recommender.py instead.
 """

@@ -1,6 +1,6 @@
 # Next 10 Movies
 
-A local Streamlit app that reads your IMDb ratings export and recommends the next 10 movies you should watch, using TMDB's recommendation/similar endpoints combined with a taste profile built from your own ratings.
+A local Streamlit app that reads your IMDb ratings export and recommends the next 10 movies you should watch, by asking TMDB what's similar to your favorites and combining that with a taste profile built from your own ratings.
 
 ## Setup
 
@@ -17,6 +17,8 @@ A local Streamlit app that reads your IMDb ratings export and recommends the nex
    ```
    TMDB_API_KEY=your_tmdb_api_key_here
    ```
+
+   `.env.example` also lists two optional variables (`GROQ_API_KEY`, `APP_PASSWORD`) — see [Optional: natural-language "why" text](#optional-natural-language-why-text) and [DEPLOYMENT.md](DEPLOYMENT.md) for what they do. Neither is required to run the app.
 
 ## Run the app
 
@@ -97,5 +99,5 @@ The "why" explanation for each recommendation is generated directly from your da
 pytest
 ```
 
-Tests cover CSV parsing/validation (`tests/test_imdb_parser.py`), taste-profile affinity scoring (`tests/test_profile.py`), and candidate scoring/filtering/diversity logic (`tests/test_recommender.py`), using `sample_ratings.csv` as fixture data.
+Tests cover CSV parsing/validation (`tests/test_imdb_parser.py`), taste-profile affinity scoring (`tests/test_profile.py`), candidate scoring/filtering/diversity logic (`tests/test_recommender.py`), and the optional LLM rewrite's success/fallback paths (`tests/test_llm_rewrite.py`), using `sample_ratings.csv` as fixture data.
 

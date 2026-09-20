@@ -20,7 +20,7 @@ docker run -p 8501:8501 next10movies
 Open http://localhost:8501 — you should see the app with an empty "Your TMDB API key" field (no `.env` is baked into the image).
 
 ### 2. Push to GitHub
-Deployment platforms deploy from a git repo. Init git here if you haven't, commit, push to a new GitHub repo. Double check `.env` is not committed (it's in `.gitignore`).
+Deployment platforms deploy from a git repo. Init git here if you haven't, commit, push to a new GitHub repo. Double check `.env` is not committed (it's in `.gitignore`) — and don't commit your own `movies.csv`/`ratings.csv` export either, since it's your real viewing history. Both are gitignored by default; `sample_ratings.csv` (fake demo data) is fine to commit and already is.
 
 ### 3. Pick a host and deploy the container
 Recommended: **Fly.io** — free tier is enough for this, deploys straight from the Dockerfile, has persistent volumes and automatic HTTPS.
