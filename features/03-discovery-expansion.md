@@ -22,6 +22,6 @@ The current app only ever answers "more of what I already like." That's the righ
 ## Effort estimate
 Medium. The TMDB calls themselves are simple (arguably simpler than the existing pipeline), but it's a genuinely new section of the app (new tab, new card "why" text, a few new small functions) rather than an extension of existing code paths.
 
-## Open questions
-- Should discovery picks still exclude movies you've already rated? (Probably yes, same as today.)
-- Is "opposite of you" actually wanted, or does it just produce noise? Worth trying trending + genre-gap first, since those are more obviously useful, before building the more editorial "opposite" framing.
+## Decisions
+- **Discovery picks exclude already-rated movies** — same already-watched filter as the main pipeline, matched by IMDb ID.
+- **"Opposite of you" picks are wanted**, not just trending + genre-gap — build all three lenses (trending, genre-gap, opposite-of-you) rather than deferring the opposite-of-you framing.

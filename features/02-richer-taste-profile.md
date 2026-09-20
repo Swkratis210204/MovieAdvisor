@@ -23,6 +23,6 @@ Right now the profile section is all numbers and tables — it doesn't feel like
 ## Effort estimate
 Small-medium. Mostly reuses existing patterns (TMDB enrichment, card rendering) rather than introducing new architecture.
 
-## Open questions
-- Show all-time top movies, or let the user pick a count (top 5/10/20)?
-- Worth a "refresh" button, or just compute this every time the CSV loads (small extra API cost on every upload)?
+## Decisions
+- **Count is user-picked**, not fixed — a slider/number input (e.g. "Show top N", 5–20) lets the user choose how many top movies to enrich and display, rather than a hardcoded default.
+- **Enrichment happens on a "Refresh" button, not automatically on every CSV load.** Keeps the initial profile view (which is already free — no TMDB calls) fast, and avoids spending TMDB requests before the user has actually decided on filters/count. Mirrors the existing "Find my next 10 movies" pattern: nothing calls TMDB until the user explicitly asks.
