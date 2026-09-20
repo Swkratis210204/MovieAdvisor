@@ -187,6 +187,13 @@ if all_results:
                     st.write(f"*{c.why}*")
                     st.markdown(f"[View on IMDb]({c.imdb_url})")
 
+    if shown_count < len(all_results):
+        if st.button("Show me 10 more"):
+            st.session_state["shown_count"] = shown_count + 10
+            st.rerun()
+    else:
+        st.caption("That's all the recommendations available with your current filters.")
+
     export_df = pd.DataFrame(
         [
             {
