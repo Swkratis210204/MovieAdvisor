@@ -68,6 +68,3 @@ pytest
 
 Tests cover CSV parsing/validation (`tests/test_imdb_parser.py`), taste-profile affinity scoring (`tests/test_profile.py`), and candidate scoring/filtering/diversity logic (`tests/test_recommender.py`), using `sample_ratings.csv` as fixture data.
 
-## Notes
-
-- Your `.env` file is gitignored and never committed.
