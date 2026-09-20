@@ -28,6 +28,7 @@ MAX_PER_DIRECTOR = 3
 MAX_PER_FRANCHISE = 3
 
 FINAL_TOP_N = 10
+POOL_SIZE = 30  # fetch this many diversity-filtered candidates so "show 10 more" needs no extra API calls
 
 
 @dataclass
@@ -284,8 +285,13 @@ def recommend(
     include_genres: Optional[list[str]] = None,
     exclude_genres: Optional[list[str]] = None,
     progress_cb: Optional[Callable[[float, str], None]] = None,
+    pool_size: int = POOL_SIZE,
 ) -> list[Candidate]:
-    """End-to-end pipeline: seeds -> raw candidates -> enriched -> filtered -> scored -> diverse top N."""
+    """End-to-end pipeline: seeds -> raw candidates -> enriched -> filtered -> scored -> diverse pool.
+
+    Returns up to `pool_size` candidates (diversity rule applied across the whole pool), so callers
+    can page through them (e.g. 10 at a time) without re-fetching from TMDB.
+    """
     seeds = select_seeds(df)
     rated_imdb_ids = set(df["const"])
 
@@ -299,7 +305,7 @@ def recommend(
         candidates, max_runtime, min_year, include_genres or [], exclude_genres or []
     )
     candidates = score_candidates(candidates, profile)
-    top = apply_diversity_filter(candidates, FINAL_TOP_N)
+    top = apply_diversity_filter(candidates, pool_size)
 
     if progress_cb:
         progress_cb(1.0, "Done.")

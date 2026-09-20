@@ -21,7 +21,16 @@ st.caption("Upload your IMDb ratings export and get a personalized watchlist pow
 
 uploaded = st.file_uploader("Upload your IMDb ratings.csv export", type=["csv"])
 
-use_sample = st.checkbox("Use bundled sample_ratings.csv instead (for demo/testing)", value=False)
+use_sample = st.checkbox(
+    "Use bundled sample_ratings.csv instead (for demo/testing)",
+    value=False,
+    disabled=uploaded is not None,
+    help="Unavailable while a file is uploaded — remove the uploaded file to use sample data instead."
+    if uploaded is not None
+    else None,
+)
+if uploaded is not None:
+    use_sample = False
 
 df = None
 if use_sample:
@@ -114,13 +123,12 @@ api_key = user_api_key.strip() or server_api_key
 st.header("Get Recommendations")
 
 if not api_key:
-    st.error(
-        "A TMDB API key is required. Enter your own key in the sidebar (get one free at "
+    st.info(
+        "Enter a TMDB API key in the sidebar to enable recommendations (get one free at "
         "themoviedb.org/settings/api), or set TMDB_API_KEY in a .env file if you're running this locally."
     )
-    st.stop()
 
-if st.button("Find my next 10 movies", type="primary"):
+if st.button("Find my next 10 movies", type="primary", disabled=not api_key):
     progress_bar = st.progress(0.0)
     status_text = st.empty()
 
@@ -152,10 +160,14 @@ if st.button("Find my next 10 movies", type="primary"):
         st.stop()
 
     st.session_state["results"] = results
+    st.session_state["shown_count"] = 10
 
-results = st.session_state.get("results")
+all_results = st.session_state.get("results")
 
-if results:
+if all_results:
+    shown_count = min(st.session_state.get("shown_count", 10), len(all_results))
+    results = all_results[:shown_count]
+
     st.subheader(f"Your Next {len(results)} Movies")
 
     cols = st.columns(2)
