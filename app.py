@@ -119,6 +119,7 @@ user_api_key = st.sidebar.text_input(
     "Your TMDB API key",
     type="password",
     value="",
+    live="300ms",
     help=(
         "Free to get at themoviedb.org/settings/api. Used only for this browser session "
         "to call TMDB on your behalf — it is never saved to disk or shared with other users."
