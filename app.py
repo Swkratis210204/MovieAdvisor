@@ -8,6 +8,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from imdb_parser import CSVValidationError, load_ratings, split_list_field
+from llm_rewrite import rewrite_why
 from taste_profile import build_profile
 from recommender import recommend
 from tmdb_client import TMDBClient, TMDBError
@@ -20,6 +21,17 @@ st.caption("Upload your IMDb ratings export and get a personalized watchlist pow
 
 
 uploaded = st.file_uploader("Upload your IMDb ratings.csv export", type=["csv"])
+
+with st.expander("Don't know how to get your IMDb ratings export?"):
+    st.markdown(
+        """
+1. Go to [imdb.com](https://www.imdb.com) and sign in to your account.
+2. Click your name/profile icon (top right) and select **Your Ratings**.
+3. On the Your Ratings page, click the **⋯** (more) menu near the top right of the list.
+4. Select **Export**.
+5. IMDb will download a file named `ratings.csv` — that's the file to upload above.
+        """
+    )
 
 use_sample = st.checkbox(
     "Use bundled sample_ratings.csv instead (for demo/testing)",
@@ -119,6 +131,21 @@ st.sidebar.caption(
 )
 api_key = user_api_key.strip() or server_api_key
 
+# --- Optional: LLM rewrite of "why" lines (free, open-source model via Groq) ---
+st.sidebar.header("Why-text rewrite (optional)")
+server_groq_key = os.getenv("GROQ_API_KEY")
+use_llm_rewrite = st.sidebar.checkbox(
+    "Rewrite 'why' lines with a free open-source LLM",
+    value=False,
+    disabled=not server_groq_key,
+    help=(
+        "Rewrites the recommendation reason in more natural prose using an open-weight "
+        "model hosted free via Groq. Off by default; the app works fully without it."
+        if server_groq_key
+        else "Requires GROQ_API_KEY to be set on the server. Get a free key at console.groq.com."
+    ),
+)
+
 # --- Recommendations -----------------------------------------------------
 st.header("Get Recommendations")
 
@@ -128,7 +155,11 @@ if not api_key:
         "themoviedb.org/settings/api), or set TMDB_API_KEY in a .env file if you're running this locally."
     )
 
-if st.button("Find my next 10 movies", type="primary", disabled=not api_key):
+if st.button("Find my next 10 movies", type="primary"):
+    if not api_key:
+        st.warning("Enter a TMDB API key in the sidebar first.")
+        st.stop()
+
     progress_bar = st.progress(0.0)
     status_text = st.empty()
 
@@ -170,6 +201,12 @@ if all_results:
 
     st.subheader(f"Your Next {len(results)} Movies")
 
+    profile_summary = (
+        f"Average rating {profile.overall_avg:.1f}. "
+        f"Top genres: {', '.join(a.name for a in profile.top_genres(3))}. "
+        f"Top directors: {', '.join(a.name for a in profile.top_directors(3))}."
+    )
+
     cols = st.columns(2)
     for i, c in enumerate(results):
         with cols[i % 2]:
@@ -184,7 +221,10 @@ if all_results:
                     runtime_str = f"{c.runtime} min" if c.runtime else "Runtime N/A"
                     st.write(f"{runtime_str} · {', '.join(c.genres) or 'N/A'}")
                     st.write(f"TMDB rating: {c.vote_average:.1f}/10 ({c.vote_count:,} votes)")
-                    st.write(f"*{c.why}*")
+                    why_text = c.why
+                    if use_llm_rewrite and server_groq_key:
+                        why_text = rewrite_why(c.why, c.title, profile_summary, server_groq_key)
+                    st.write(f"*{why_text}*")
                     st.markdown(f"[View on IMDb]({c.imdb_url})")
 
     if shown_count < len(all_results):

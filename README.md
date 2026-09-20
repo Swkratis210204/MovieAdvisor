@@ -32,33 +32,31 @@ There's also a "use bundled sample_ratings.csv" checkbox for a quick demo withou
 
 ```mermaid
 flowchart TD
-    A["ratings.csv upload"] --> B["Parse & validate\n(imdb_parser.py)\nkeep Title Type == movie"]
-    B --> C["Taste profile\n(taste_profile.py)\noverall avg + genre/director\naffinity, shrunk for small samples"]
-    B --> D["Select seeds\nrating >= 8, top 40"]
-    D --> E["TMDB: resolve IMDb id -> TMDB id\n/find/{imdb_id}"]
-    E --> F["TMDB: fan out per seed\n/movie/{id}/recommendations\n/movie/{id}/similar"]
-    F --> G["Aggregate candidates\nweight by (seed rating - my avg)"]
-    G --> H["Enrich top candidates\n/movie/{id}?append_to_response=\nexternal_ids,credits"]
-    H --> I["Drop already-watched\n(match by IMDb id)\nand < 500 votes"]
-    C --> J
-    I --> L["Sidebar filters\nruntime, year, genre include/exclude"]
-    L --> J["Score\nfrequency + genre affinity +\ndirector affinity + quality prior"]
-    J --> K["Diversity filter\nmax 3 per director/franchise"]
-    K --> M["Top 10 cards + CSV export\n(app.py)"]
-
-    N[("Disk cache\n.cache/")] -.-> E
-    N -.-> F
-    N -.-> H
+    A["You upload your ratings"] --> B["Clean the data\nkeep movies only"]
+    B --> C["Learn your taste\nfavorite genres & directors"]
+    B --> D["Pick your favorites\nyour highest-rated movies"]
+    D --> E["Find similar movies\nfor each favorite"]
+    E --> F["Combine the results\nmovies suggested more often\ncount for more"]
+    F --> G["Remove movies you've\nalready seen or are too obscure"]
+    C --> H
+    G --> I["Apply your filters\nruntime, year, genres"]
+    I --> H["Rank by fit\nhow well it matches your taste"]
+    H --> J["Keep it varied\nno more than 3 picks per\ndirector or franchise"]
+    J --> K["Show your next 10 movies"]
 ```
 
-1. **Parse** — validates and normalizes the uploaded CSV, keeping only rows where `Title Type` is `movie`.
-2. **Taste profile** — computes your overall average rating plus per-genre and per-director affinity scores (shrunk toward the mean for small sample sizes so a single 10/10 doesn't dominate).
-3. **Candidate generation** — for your highest-rated movies (rating ≥ 8, capped at your top 40), resolves each to a TMDB ID and pulls `/movie/{id}/recommendations` and `/movie/{id}/similar`, weighting each source movie by how far above your average you rated it.
-4. **Filtering** — drops anything already in your ratings CSV (matched by IMDb ID) and anything under 500 TMDB votes.
-5. **Scoring** — combines weighted recommendation frequency, genre affinity, director affinity, and a small TMDB quality prior, then applies a diversity rule (max 3 picks per director or franchise).
-6. **UI** — sidebar filters (runtime, release year, include/exclude genres) are applied before ranking. Results are shown as cards with poster, title, year, runtime, genres, a "why" explanation, and a link to the IMDb page. You can download the results as CSV.
+1. **Clean the data** — keeps only real movies from your upload, ignoring TV shows and episodes.
+2. **Learn your taste** — works out your average rating, plus which genres and directors you rate consistently above or below your own average (a single one-off 10/10 doesn't skew the whole profile).
+3. **Find similar movies** — for your highest-rated movies, looks up what other viewers who liked those also enjoyed.
+4. **Combine and clean up** — movies suggested by several of your favorites score higher; anything you've already rated, or that's too obscure (very few votes), gets dropped.
+5. **Rank by fit** — combines how often a movie was suggested, how well it matches your favorite genres/directors, and its overall quality, then makes sure the final list isn't dominated by one director or franchise.
+6. **Show results** — your sidebar filters (runtime, year, genres) are applied before ranking. Results appear as cards with poster, title, year, runtime, genres, a "why" explanation, and a link to IMDb. You can load 10 more, or download the list as CSV.
 
-All TMDB responses are cached on disk under `.cache/` so re-running with the same filters is fast and doesn't re-hit the API.
+Movie data is cached on disk so re-running with the same filters is fast and doesn't repeat lookups unnecessarily.
+
+### Optional: natural-language "why" text
+
+The "why" explanation for each recommendation is generated directly from your data by default (e.g. *"Recommended by 4 of your favorites; matches your love of sci-fi and Nolan."*) — no AI involved. If you want it rephrased in more natural prose, there's an opt-in sidebar checkbox that uses an open-weight model (currently `openai/gpt-oss-20b`) hosted free by [Groq](https://console.groq.com) to rewrite it. This requires a free `GROQ_API_KEY` in `.env` and is off by default; the app works fully without it.
 
 ## Tests
 
