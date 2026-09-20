@@ -101,3 +101,7 @@ pytest
 
 Tests cover CSV parsing/validation (`tests/test_imdb_parser.py`), taste-profile affinity scoring (`tests/test_profile.py`), candidate scoring/filtering/diversity logic (`tests/test_recommender.py`), and the optional LLM rewrite's success/fallback paths (`tests/test_llm_rewrite.py`), using `sample_ratings.csv` as fixture data.
 
+## License
+
+[MIT](LICENSE)
+
