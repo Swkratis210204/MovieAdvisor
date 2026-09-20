@@ -1,11 +1,9 @@
-# Feature: Richer taste profile
+# Feature: Drill-down on profile stats
 
 ## What
-Show your actual top-rated movies as clickable poster cards (same style as recommendation cards), not just genre/director tables.
-
-## Decisions
-- User picks how many to show (a number input, 5–20).
-- Only fetched on a "Refresh" button click, not automatically — same pattern as "Find my next 10 movies."
+Every aggregate stat becomes clickable to show the actual movies behind it:
+- Click a director/genre in the top-genres/top-directors table → see which of your movies those are.
+- Click a bar in the rating distribution (e.g. "rated 4: 5 movies") → see which 5 movies.
 
 ## How
-New function in `recommender.py` that resolves your top-N rated movies' IMDb IDs to TMDB posters/details (reuses existing `TMDBClient` methods). Rendered with the same card layout already used for recommendations.
+No TMDB calls needed — this is all already in the uploaded CSV. Use `st.expander` or `st.dataframe` selection under each table/chart, filtering `df` by that genre/director/rating and listing title + year + your rating.
