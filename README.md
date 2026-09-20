@@ -82,6 +82,7 @@ Now say TMDB tells us:
 - **Dunkirk** is similar to *Inception* only
 
 Interstellar's score = 3 (from Inception) + 2 (from The Prestige) = **5**
+
 Dunkirk's score = 3 (from Inception) = **3**
 
 Interstellar ends up ranked higher — not just because it's "similar to a favorite," but because it was independently pointed to by *two* of your favorites, including your highest-rated one. That's the whole mechanic: every suggestion is a vote, the vote is worth more if it came from a movie you loved more, and votes for the same movie from different favorites stack up.
