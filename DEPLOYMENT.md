@@ -44,7 +44,13 @@ then mount it at `/app/.cache` in `fly.toml`.
 Skip this step entirely if you don't care about the extra speed — it's not required for correctness.
 
 ### 5. (Optional) Gate access
-Since anyone with the link can now use the app (using their *own* TMDB key, not yours — see below), there's no API-cost reason to lock it down. Add basic auth only if you want to control who sees it at all, e.g. a Caddy reverse proxy with `basicauth` in a few lines of config.
+Since anyone with the link can now use the app (using their *own* TMDB key, not yours), there's no API-cost reason to lock it down. If you still want to control who can open it at all, set `APP_PASSWORD` as a server secret — the app shows a password prompt before anything else until it's entered correctly (`app.py`), no reverse proxy required:
+
+```
+fly secrets set APP_PASSWORD=whatever-you-want -a personalmovie
+```
+
+Leave `APP_PASSWORD` unset to keep the app fully open (the default).
 
 ### 6. Server secrets
 No server-side TMDB secret is required anymore for public use — each user supplies their own key at runtime. If you still want a fallback default key for convenience (e.g. for yourself), set `TMDB_API_KEY` as an environment variable/secret in the host's dashboard (`fly secrets set TMDB_API_KEY=...`), never in the Docker image itself.

@@ -16,6 +16,22 @@ from tmdb_client import TMDBClient, TMDBError
 load_dotenv()
 
 st.set_page_config(page_title="Next 10 Movies", page_icon="🎬", layout="wide")
+
+# --- Optional access gate ---------------------------------------------------
+# If APP_PASSWORD is set on the server, visitors must enter it once per session
+# before using the app. Leave APP_PASSWORD unset to keep the app fully open.
+app_password = os.getenv("APP_PASSWORD")
+if app_password and not st.session_state.get("authenticated"):
+    st.title("🎬 Next 10 Movies")
+    entered = st.text_input("This app is password-protected. Enter the password to continue:", type="password", live="300ms")
+    if entered:
+        if entered == app_password:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    st.stop()
+
 st.title("🎬 Next 10 Movies")
 st.caption("Upload your IMDb ratings export and get a personalized watchlist powered by TMDB.")
 
