@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
+from discovery import get_genre_gap_picks, get_opposite_of_you_picks, get_trending_picks
 from imdb_parser import CSVValidationError, load_ratings, split_list_field
 from llm_rewrite import rewrite_why
 from taste_profile import build_profile
@@ -94,6 +95,15 @@ else:
     col2.metric("IMDb average (same films)", "N/A")
 col3.metric("Movies rated", len(df))
 
+def _movies_for(list_col: str, value: str) -> pd.DataFrame:
+    mask = df[list_col].apply(lambda v: value in split_list_field(v))
+    return (
+        df.loc[mask, ["title", "year", "your_rating"]]
+        .sort_values("your_rating", ascending=False)
+        .rename(columns={"title": "Title", "year": "Year", "your_rating": "Your Rating"})
+    )
+
+
 pcol1, pcol2 = st.columns(2)
 with pcol1:
     st.subheader("Top genres")
@@ -102,7 +112,18 @@ with pcol1:
         genre_df = pd.DataFrame(
             [{"Genre": a.name, "Avg Rating": round(a.avg_rating, 2), "Films": a.count} for a in top_genres]
         ).set_index("Genre")
-        st.dataframe(genre_df, use_container_width=True)
+        event = st.dataframe(
+            genre_df,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="genre_table",
+        )
+        selected_rows = event.selection.rows if event and event.selection else []
+        if selected_rows:
+            genre_name = genre_df.index[selected_rows[0]]
+            st.caption(f"Movies you rated in **{genre_name}**:")
+            st.dataframe(_movies_for("genres", genre_name), use_container_width=True, hide_index=True)
     else:
         st.write("Not enough genre data.")
 
@@ -113,13 +134,40 @@ with pcol2:
         dir_df = pd.DataFrame(
             [{"Director": a.name, "Avg Rating": round(a.avg_rating, 2), "Films": a.count} for a in top_directors]
         ).set_index("Director")
-        st.dataframe(dir_df, use_container_width=True)
+        event = st.dataframe(
+            dir_df,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="director_table",
+        )
+        selected_rows = event.selection.rows if event and event.selection else []
+        if selected_rows:
+            director_name = dir_df.index[selected_rows[0]]
+            st.caption(f"Movies you rated by **{director_name}**:")
+            st.dataframe(_movies_for("directors", director_name), use_container_width=True, hide_index=True)
     else:
         st.write("No director has 2+ films yet.")
 
 st.subheader("Rating distribution")
 dist = df["your_rating"].value_counts().sort_index()
-st.bar_chart(dist)
+st.bar_chart(dist, use_container_width=True)
+rating_options = sorted(dist.index, reverse=True)
+picked_rating = st.selectbox(
+    "See the movies behind a bar",
+    options=rating_options,
+    format_func=lambda r: f"Rated {r:g} — {dist[r]} movie(s)",
+    index=None,
+    placeholder="Choose a rating...",
+)
+if picked_rating is not None:
+    st.caption(f"Movies you rated **{picked_rating:g}**:")
+    rated_movies = (
+        df.loc[df["your_rating"] == picked_rating, ["title", "year"]]
+        .sort_values("title")
+        .rename(columns={"title": "Title", "year": "Year"})
+    )
+    st.dataframe(rated_movies, use_container_width=True, hide_index=True)
 
 # --- Sidebar filters ---------------------------------------------------
 st.sidebar.header("Filters")
@@ -165,114 +213,172 @@ use_llm_rewrite = st.sidebar.checkbox(
     ),
 )
 
-# --- Recommendations -----------------------------------------------------
-st.header("Get Recommendations")
+# --- Recommendations & Explore tabs ----------------------------------------
+tab1, tab2 = st.tabs(["Recommendations", "Explore"])
 
-if not api_key:
-    st.info(
-        "Enter a TMDB API key in the sidebar to enable recommendations (get one free at "
-        "themoviedb.org/settings/api), or set TMDB_API_KEY in a .env file if you're running this locally."
-    )
+with tab1:
+    # --- Recommendations -----------------------------------------------------
+    st.header("Get Recommendations")
 
-if st.button("Find my next 10 movies", type="primary"):
     if not api_key:
-        st.warning("Enter a TMDB API key in the sidebar first.")
-        st.stop()
-
-    progress_bar = st.progress(0.0)
-    status_text = st.empty()
-
-    def progress_cb(frac: float, message: str) -> None:
-        progress_bar.progress(min(max(frac, 0.0), 1.0))
-        status_text.text(message)
-
-    try:
-        client = TMDBClient(api_key)
-        results = recommend(
-            df,
-            profile,
-            client,
-            max_runtime=max_runtime,
-            min_year=min_year,
-            include_genres=include_genres,
-            exclude_genres=exclude_genres,
-            progress_cb=progress_cb,
+        st.info(
+            "Enter a TMDB API key in the sidebar to enable recommendations (get one free at "
+            "themoviedb.org/settings/api), or set TMDB_API_KEY in a .env file if you're running this locally."
         )
-    except TMDBError as e:
-        st.error(f"TMDB error: {e}")
-        st.stop()
-    finally:
-        progress_bar.empty()
-        status_text.empty()
 
-    if not results:
-        st.warning("No recommendations found with the current filters. Try loosening them.")
-        st.stop()
+    if st.button("Find my next 10 movies", type="primary"):
+        if not api_key:
+            st.warning("Enter a TMDB API key in the sidebar first.")
+            st.stop()
 
-    st.session_state["results"] = results
-    st.session_state["shown_count"] = 10
+        progress_bar = st.progress(0.0)
+        status_text = st.empty()
 
-all_results = st.session_state.get("results")
+        def progress_cb(frac: float, message: str) -> None:
+            progress_bar.progress(min(max(frac, 0.0), 1.0))
+            status_text.text(message)
 
-if all_results:
-    shown_count = min(st.session_state.get("shown_count", 10), len(all_results))
-    results = all_results[:shown_count]
+        try:
+            client = TMDBClient(api_key)
+            results = recommend(
+                df,
+                profile,
+                client,
+                max_runtime=max_runtime,
+                min_year=min_year,
+                include_genres=include_genres,
+                exclude_genres=exclude_genres,
+                progress_cb=progress_cb,
+            )
+        except TMDBError as e:
+            st.error(f"TMDB error: {e}")
+            st.stop()
+        finally:
+            progress_bar.empty()
+            status_text.empty()
 
-    st.subheader(f"Your Next {len(results)} Movies")
+        if not results:
+            st.warning("No recommendations found with the current filters. Try loosening them.")
+            st.stop()
 
-    profile_summary = (
-        f"Average rating {profile.overall_avg:.1f}. "
-        f"Top genres: {', '.join(a.name for a in profile.top_genres(3))}. "
-        f"Top directors: {', '.join(a.name for a in profile.top_directors(3))}."
+        st.session_state["results"] = results
+        st.session_state["shown_count"] = 10
+
+    all_results = st.session_state.get("results")
+
+    if all_results:
+        shown_count = min(st.session_state.get("shown_count", 10), len(all_results))
+        results = all_results[:shown_count]
+
+        st.subheader(f"Your Next {len(results)} Movies")
+
+        profile_summary = (
+            f"Average rating {profile.overall_avg:.1f}. "
+            f"Top genres: {', '.join(a.name for a in profile.top_genres(3))}. "
+            f"Top directors: {', '.join(a.name for a in profile.top_directors(3))}."
+        )
+
+        cols = st.columns(2)
+        for i, c in enumerate(results):
+            with cols[i % 2]:
+                with st.container(border=True):
+                    inner_col1, inner_col2 = st.columns([1, 2])
+                    with inner_col1:
+                        poster = TMDBClient.poster_url(c.poster_path)
+                        if poster:
+                            st.image(poster, use_container_width=True)
+                    with inner_col2:
+                        st.markdown(f"### {c.title} ({c.year or 'N/A'})")
+                        runtime_str = f"{c.runtime} min" if c.runtime else "Runtime N/A"
+                        st.write(f"{runtime_str} · {', '.join(c.genres) or 'N/A'}")
+                        st.write(f"TMDB rating: {c.vote_average:.1f}/10 ({c.vote_count:,} votes)")
+                        why_text = c.why
+                        if use_llm_rewrite and server_groq_key:
+                            why_text = rewrite_why(c.why, c.title, profile_summary, server_groq_key)
+                        st.write(f"*{why_text}*")
+                        st.markdown(f"[View on IMDb]({c.imdb_url})")
+
+        if shown_count < len(all_results):
+            if st.button("Show me 10 more"):
+                st.session_state["shown_count"] = shown_count + 10
+                st.rerun()
+        else:
+            st.caption("That's all the recommendations available with your current filters.")
+
+        export_df = pd.DataFrame(
+            [
+                {
+                    "Title": c.title,
+                    "Year": c.year,
+                    "Runtime": c.runtime,
+                    "Genres": ", ".join(c.genres),
+                    "Directors": ", ".join(c.directors),
+                    "TMDB Rating": c.vote_average,
+                    "IMDb URL": c.imdb_url,
+                    "Why": c.why,
+                    "Score": round(c.score, 3),
+                }
+                for c in results
+            ]
+        )
+        csv_bytes = export_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download recommendations as CSV",
+            data=csv_bytes,
+            file_name="recommendations.csv",
+            mime="text/csv",
+        )
+
+with tab2:
+    st.header("Explore")
+    st.caption(
+        "Movies outside your rating history: what's trending, genres you rarely rate, "
+        "and well-rated movies in genres you usually don't love."
     )
 
-    cols = st.columns(2)
-    for i, c in enumerate(results):
-        with cols[i % 2]:
-            with st.container(border=True):
-                inner_col1, inner_col2 = st.columns([1, 2])
-                with inner_col1:
-                    poster = TMDBClient.poster_url(c.poster_path)
-                    if poster:
-                        st.image(poster, use_container_width=True)
-                with inner_col2:
-                    st.markdown(f"### {c.title} ({c.year or 'N/A'})")
-                    runtime_str = f"{c.runtime} min" if c.runtime else "Runtime N/A"
-                    st.write(f"{runtime_str} · {', '.join(c.genres) or 'N/A'}")
-                    st.write(f"TMDB rating: {c.vote_average:.1f}/10 ({c.vote_count:,} votes)")
-                    why_text = c.why
-                    if use_llm_rewrite and server_groq_key:
-                        why_text = rewrite_why(c.why, c.title, profile_summary, server_groq_key)
-                    st.write(f"*{why_text}*")
-                    st.markdown(f"[View on IMDb]({c.imdb_url})")
+    if not api_key:
+        st.info(
+            "Enter a TMDB API key in the sidebar to enable exploring (get one free at "
+            "themoviedb.org/settings/api), or set TMDB_API_KEY in a .env file if you're running this locally."
+        )
 
-    if shown_count < len(all_results):
-        if st.button("Show me 10 more"):
-            st.session_state["shown_count"] = shown_count + 10
-            st.rerun()
-    else:
-        st.caption("That's all the recommendations available with your current filters.")
+    def _render_discovery_cards(cards) -> None:
+        if not cards:
+            st.write("No picks found.")
+            return
+        cols = st.columns(2)
+        for i, c in enumerate(cards):
+            with cols[i % 2]:
+                with st.container(border=True):
+                    inner_col1, inner_col2 = st.columns([1, 2])
+                    with inner_col1:
+                        poster = TMDBClient.poster_url(c.poster_path)
+                        if poster:
+                            st.image(poster, use_container_width=True)
+                    with inner_col2:
+                        st.markdown(f"### {c.title} ({c.year or 'N/A'})")
+                        st.write(", ".join(c.genres) or "N/A")
+                        st.write(f"TMDB rating: {c.vote_average:.1f}/10 ({c.vote_count:,} votes)")
+                        st.write(f"*{c.why}*")
+                        st.markdown(f"[View on TMDB]({c.tmdb_url})")
 
-    export_df = pd.DataFrame(
-        [
-            {
-                "Title": c.title,
-                "Year": c.year,
-                "Runtime": c.runtime,
-                "Genres": ", ".join(c.genres),
-                "Directors": ", ".join(c.directors),
-                "TMDB Rating": c.vote_average,
-                "IMDb URL": c.imdb_url,
-                "Why": c.why,
-                "Score": round(c.score, 3),
-            }
-            for c in results
-        ]
-    )
-    csv_bytes = export_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "Download recommendations as CSV",
-        data=csv_bytes,
-        file_name="recommendations.csv",
-        mime="text/csv",
-    )
+    if st.button("Load explore picks", type="primary", disabled=not api_key):
+        client = TMDBClient(api_key)
+        with st.spinner("Fetching trending, genre-gap, and opposite-of-you picks..."):
+            try:
+                st.session_state["explore_trending"] = get_trending_picks(df, client)
+                st.session_state["explore_genre_gap"] = get_genre_gap_picks(df, profile, client)
+                st.session_state["explore_opposite"] = get_opposite_of_you_picks(df, profile, client)
+            except TMDBError as e:
+                st.error(f"TMDB error: {e}")
+                st.stop()
+
+    if "explore_trending" in st.session_state:
+        st.subheader("Trending now")
+        _render_discovery_cards(st.session_state["explore_trending"])
+
+        st.subheader("Genres you rarely rate")
+        _render_discovery_cards(st.session_state["explore_genre_gap"])
+
+        st.subheader("Opposite of you")
+        _render_discovery_cards(st.session_state["explore_opposite"])

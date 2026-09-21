@@ -117,6 +117,17 @@ class TMDBClient:
         genres = (data or {}).get("genres", [])
         return {g["id"]: g["name"] for g in genres}
 
+    def get_trending(self) -> list[dict]:
+        data = self._get("/trending/movie/week")
+        return (data or {}).get("results", [])
+
+    def discover_by_genre(self, genre_id: int, sort_by: str = "popularity.desc", min_votes: int = 200) -> list[dict]:
+        data = self._get(
+            "/discover/movie",
+            params={"with_genres": genre_id, "sort_by": sort_by, "vote_count.gte": min_votes},
+        )
+        return (data or {}).get("results", [])
+
     @staticmethod
     def poster_url(poster_path: Optional[str]) -> Optional[str]:
         if not poster_path:
