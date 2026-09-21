@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from discovery import get_genre_gap_picks, get_opposite_of_you_picks, get_trending_picks
 from imdb_parser import CSVValidationError, load_ratings, split_list_field
-from llm_rewrite import rewrite_why
+from llm_rewrite import DEFAULT_DAILY_LIMIT, daily_limit_reached, get_daily_usage, rewrite_why
 from taste_profile import build_profile
 from recommender import recommend
 from tmdb_client import TMDBClient, TMDBError
@@ -215,17 +215,25 @@ api_key = user_api_key.strip() or server_api_key
 # --- Optional: LLM rewrite of "why" lines (free, open-source model via Groq) ---
 st.sidebar.header("Why-text rewrite (optional)")
 server_groq_key = os.getenv("GROQ_API_KEY")
+groq_cap_reached = bool(server_groq_key) and daily_limit_reached()
 use_llm_rewrite = st.sidebar.checkbox(
     "Rewrite 'why' lines with a free open-source LLM",
     value=False,
-    disabled=not server_groq_key,
+    disabled=not server_groq_key or groq_cap_reached,
     help=(
-        "Rewrites the recommendation reason in more natural prose using an open-weight "
+        "Requires GROQ_API_KEY to be set on the server. Get a free key at console.groq.com."
+        if not server_groq_key
+        else "Today's shared rewrite quota is used up — resets at midnight UTC."
+        if groq_cap_reached
+        else "Rewrites the recommendation reason in more natural prose using an open-weight "
         "model hosted free via Groq. Off by default; the app works fully without it."
-        if server_groq_key
-        else "Requires GROQ_API_KEY to be set on the server. Get a free key at console.groq.com."
     ),
 )
+if server_groq_key:
+    st.sidebar.caption(
+        f"Shared rewrite usage today: {get_daily_usage()}/{DEFAULT_DAILY_LIMIT} "
+        "(this quota is shared across all visitors, to keep the shared key's cost capped)."
+    )
 
 # --- Recommendations & Explore tabs ----------------------------------------
 tab1, tab2 = st.tabs(["Recommendations", "Explore"])
@@ -396,3 +404,33 @@ with tab2:
 
         st.subheader("Opposite of you")
         _render_discovery_cards(st.session_state["explore_opposite"])
+
+# --- Footer: TMDB attribution + privacy note --------------------------------
+st.divider()
+footer_col1, footer_col2 = st.columns([3, 2])
+with footer_col1:
+    st.caption(
+        "This product uses the [TMDB API](https://www.themoviedb.org/) but is not endorsed or "
+        "certified by TMDB."
+    )
+with footer_col2:
+    st.caption(
+        "Questions or bugs? [Open an issue on GitHub]"
+        "(https://github.com/Swkratis210204/MovieAdvisor/issues)."
+    )
+
+with st.expander("Privacy & data handling"):
+    st.markdown(
+        """
+- **Your uploaded ratings CSV** is kept only in this browser session's server-side memory —
+  never written to disk, never stored in a database, never shared with other visitors. It's
+  gone as soon as the session ends (e.g. closing the tab, or the server restarting).
+- **Your TMDB API key** (and optional Groq key) is used only to make requests on your behalf
+  for this session. It is never logged, saved, or sent anywhere except the respective API
+  (TMDB, and Groq only if you enable the "why" rewrite).
+- **Third parties involved:** [TMDB](https://www.themoviedb.org/) for movie data (using your
+  own key), and optionally [Groq](https://groq.com/) if you turn on the LLM rewrite feature.
+- **No cookies, no visitor tracking.** This app does not use analytics cookies or fingerprinting.
+- Questions, or want something about how this works clarified? [Open an issue on GitHub](https://github.com/Swkratis210204/MovieAdvisor/issues).
+        """
+    )
