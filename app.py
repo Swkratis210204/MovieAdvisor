@@ -24,6 +24,41 @@ sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), send_default_pii=False)
 
 st.set_page_config(page_title="Next 10 Movies", page_icon="🎬", layout="wide")
 
+# --- Optional privacy-friendly analytics (Umami) -----------------------------
+# Cookie-free, no PII. Only embedded once per session (not on every Streamlit
+# rerun/widget interaction) so it counts visits, not clicks. Reads the real
+# top-level URL via window.parent since the tracking script otherwise only
+# sees the sandboxed iframe Streamlit renders it into. No-op if unset.
+umami_website_id = os.getenv("UMAMI_WEBSITE_ID")
+if umami_website_id and not st.session_state.get("_umami_tracked"):
+    st.session_state["_umami_tracked"] = True
+    st.components.v1.html(
+        f"""
+        <script>
+        (function() {{
+            var s = document.createElement('script');
+            s.defer = true;
+            s.src = 'https://cloud.umami.is/script.js';
+            s.setAttribute('data-website-id', '{umami_website_id}');
+            s.setAttribute('data-auto-track', 'false');
+            s.onload = function() {{
+                if (window.umami) {{
+                    window.umami.track(function(props) {{
+                        return Object.assign({{}}, props, {{
+                            url: window.parent.location.pathname + window.parent.location.search,
+                            referrer: window.parent.document.referrer,
+                        }});
+                    }});
+                }}
+            }};
+            document.head.appendChild(s);
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
 # --- Optional access gate ---------------------------------------------------
 # If APP_PASSWORD is set on the server, visitors must enter it once per session
 # before using the app. Leave APP_PASSWORD unset to keep the app fully open.

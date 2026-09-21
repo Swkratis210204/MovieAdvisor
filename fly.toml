@@ -7,6 +7,12 @@ app = 'personalmovie'
 primary_region = 'fra'
 
 [build]
+
+[env]
+  # Umami website ID for analytics — not sensitive (visible in page source anyway),
+  # so it lives here as a plain env var rather than a Fly secret.
+  UMAMI_WEBSITE_ID = '91893401-a437-4a90-926a-9e86776dfa22'
+
 [http_service]
   internal_port = 8501
   force_https = true
