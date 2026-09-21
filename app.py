@@ -63,17 +63,28 @@ use_sample = st.checkbox(
 if uploaded is not None:
     use_sample = False
 
-df = None
 if use_sample:
-    try:
-        df = load_ratings("sample_ratings.csv")
-    except CSVValidationError as e:
-        st.error(str(e))
+    if st.session_state.get("ratings_source") != "sample":
+        try:
+            st.session_state["ratings_df"] = load_ratings("sample_ratings.csv")
+            st.session_state["ratings_source"] = "sample"
+        except CSVValidationError as e:
+            st.error(str(e))
 elif uploaded is not None:
-    try:
-        df = load_ratings(uploaded)
-    except CSVValidationError as e:
-        st.error(str(e))
+    # Keyed by (name, size) so re-selecting the same file doesn't re-parse it,
+    # but a different file does.
+    upload_key = (uploaded.name, uploaded.size)
+    if st.session_state.get("ratings_source") != upload_key:
+        try:
+            st.session_state["ratings_df"] = load_ratings(uploaded)
+            st.session_state["ratings_source"] = upload_key
+        except CSVValidationError as e:
+            st.error(str(e))
+
+# Cached in session_state (not just the widget's return value) so a browser
+# reload — which resets the file_uploader widget but keeps the Streamlit
+# session — doesn't lose the already-parsed data.
+df = st.session_state.get("ratings_df")
 
 if df is None:
     st.info("Upload a CSV to get started. Export it from IMDb: Your Ratings → ... → Export.")
