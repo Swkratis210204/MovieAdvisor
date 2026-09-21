@@ -446,7 +446,7 @@ with tab2:
         st.subheader("Opposite of you")
         _render_discovery_cards(st.session_state["explore_opposite"])
 
-# --- Footer: TMDB attribution + privacy note --------------------------------
+# --- Footer: TMDB attribution + privacy note + disclaimer -------------------
 st.divider()
 footer_col1, footer_col2 = st.columns([3, 2])
 with footer_col1:
@@ -459,6 +459,10 @@ with footer_col2:
         "Questions or bugs? [Open an issue on GitHub]"
         "(https://github.com/Swkratis210204/MovieAdvisor/issues)."
     )
+st.caption(
+    "This is a personal, hobby project provided as-is, with no warranty of any kind. Use at "
+    "your own risk."
+)
 
 with st.expander("Privacy & data handling"):
     st.markdown(
@@ -470,8 +474,10 @@ with st.expander("Privacy & data handling"):
   for this session. It is never logged, saved, or sent anywhere except the respective API
   (TMDB, and Groq only if you enable the "why" rewrite).
 - **Third parties involved:** [TMDB](https://www.themoviedb.org/) for movie data (using your
-  own key), and optionally [Groq](https://groq.com/) if you turn on the LLM rewrite feature.
-- **No cookies, no visitor tracking.** This app does not use analytics cookies or fingerprinting.
+  own key), optionally [Groq](https://groq.com/) if you turn on the LLM rewrite feature, and
+  [Umami](https://umami.is) for anonymous visit analytics.
+- **No cookies.** Visit analytics (Umami) are cookie-free and don't identify you individually —
+  no cross-site tracking, no fingerprinting, no personal data collected.
 - Questions, or want something about how this works clarified? [Open an issue on GitHub](https://github.com/Swkratis210204/MovieAdvisor/issues).
         """
     )
