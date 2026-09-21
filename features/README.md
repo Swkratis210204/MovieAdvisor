@@ -14,6 +14,6 @@ What's left before this stops being "runs on my machine" and becomes a real publ
 
 **Nice to have / lower priority:**
 7. [03-custom-domain.md](03-custom-domain.md) — off `*.fly.dev` onto your own domain
-8. [10-support-and-legal-footer.md](10-support-and-legal-footer.md) — contact link + footer
+8. ✅ [10-support-and-legal-footer.md](10-support-and-legal-footer.md) — contact link + footer. Done as a side effect of #1/#2: the footer already has the GitHub issues link, TMDB attribution, and the privacy expander.
 9. [05-seo.md](05-seo.md) — meta tags, social previews; low ROI for a single-page tool
 10. [01-bot-and-abuse-protection.md](01-bot-and-abuse-protection.md) — low risk today, revisit only if abuse actually shows up
