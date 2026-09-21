@@ -67,6 +67,19 @@ flowchart TD
 
 Movie data is cached on disk so re-running with the same filters is fast and doesn't repeat lookups unnecessarily.
 
+### Drill down on your taste profile
+
+Every table and chart in "Your Taste Profile" is clickable, not just decorative: check one or more rows in the top-genres/top-directors tables (or pick values from the rating-distribution dropdown) to see exactly which of your movies sit behind that number.
+
+### Explore tab
+
+Alongside the main recommendations flow, an **Explore** tab surfaces movies outside your rating history entirely — no scoring machinery, just direct TMDB lookups:
+- **Trending now** — what's popular on TMDB this week.
+- **Genres you rarely rate** — well-regarded movies in genres your taste profile barely touches.
+- **Opposite of you** — well-rated movies in genres you tend to rate *below* your own average, for when you want to deliberately break out of your usual lane.
+
+All three exclude anything already in your ratings.
+
 ### A worked example of step 6
 
 Say your average rating is 7, and three of your favorites are:
@@ -100,6 +113,19 @@ pytest
 ```
 
 Tests cover CSV parsing/validation (`tests/test_imdb_parser.py`), taste-profile affinity scoring (`tests/test_profile.py`), candidate scoring/filtering/diversity logic (`tests/test_recommender.py`), and the optional LLM rewrite's success/fallback paths (`tests/test_llm_rewrite.py`), using `sample_ratings.csv` as fixture data.
+
+## Running this in production
+
+This app is deployed at [personalmovie.fly.dev](https://personalmovie.fly.dev/) on Fly.io. What's in place for that:
+
+- **CI-gated deploys** — pushing to `main` runs `pytest` first (`.github/workflows/fly-deploy.yml`); the deploy to Fly only happens if tests pass. A failing test blocks the deploy entirely rather than shipping a broken build.
+- **Uptime monitoring** — [UptimeRobot](https://uptimerobot.com) checks the live URL every 5 minutes and emails on downtime.
+- **Error tracking** — [Sentry](https://sentry.io) captures unhandled exceptions (error monitoring only, no tracing/profiling; `send_default_pii=False` so no visitor IPs/headers are captured). Set `SENTRY_DSN` to enable; no-ops without it.
+- **Privacy-friendly analytics** — [Umami](https://umami.is) tracks visit counts, cookie-free, no consent banner needed. Set `UMAMI_WEBSITE_ID` to enable; unset by default so local dev doesn't pollute real stats.
+- **Cost controls** — the shared `GROQ_API_KEY` has a hard daily call cap (`llm_rewrite.py`, default 300/day, override with `GROQ_DAILY_CALL_LIMIT`) so one burst of "why" rewrites can't exhaust the free quota for every visitor for the rest of the day. TMDB carries no shared cost risk since each visitor supplies their own key.
+- **Traffic handling** — `fly.toml` sets connection concurrency limits so Fly spins up an additional machine past ~20 concurrent sessions instead of overloading one.
+
+See [features/](features/) for the full go-live checklist and the reasoning behind each of these.
 
 ## Privacy & attribution
 

@@ -21,6 +21,15 @@ primary_region = 'fra'
   min_machines_running = 1
   processes = ['app']
 
+  # Each Streamlit session holds a live WebSocket connection + its own in-memory
+  # state (uploaded ratings, recommendation results). Past ~20 concurrent
+  # sessions on a shared-cpu-1x/1GB machine, Fly should spin up another machine
+  # rather than let this one machine get overloaded and slow down for everyone.
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 20
+    hard_limit = 25
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
