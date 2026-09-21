@@ -8,8 +8,8 @@ What's left before this stops being "runs on my machine" and becomes a real publ
 
 **Do before real traffic:**
 3. ✅ [08-secrets-and-cost-controls.md](08-secrets-and-cost-controls.md) — rotation plan + cap the shared Groq quota. Done: no git-history leak found, a hard daily call cap protects the shared free quota in code, and no billing risk exists (no payment method on file with Groq). Rotation commands are written down in the file for if a key ever needs replacing.
-4. 🟡 [09-ci-and-rollback.md](09-ci-and-rollback.md) — tests-gate deploys, know how to roll back. Mostly done: the GitHub Actions workflow now runs `pytest` and only deploys to Fly if it passes. Still to do: confirm the `FLY_API_TOKEN` secret is set in GitHub, and actually run the rollback command once so it's not new during a real incident.
-5. [04-monitoring-and-error-tracking.md](04-monitoring-and-error-tracking.md) — uptime checks, error tracking, usage analytics, cost alerts
+4. ✅ [09-ci-and-rollback.md](09-ci-and-rollback.md) — tests-gate deploys, know how to roll back. Done: the GitHub Actions workflow runs `pytest` and only deploys to Fly if it passes — proven live on the `v28` release (test job ran, passed, deploy followed automatically, confirmed serving `200`). Rollback command is written down in the file if it's ever needed for real.
+5. 🟡 [04-monitoring-and-error-tracking.md](04-monitoring-and-error-tracking.md) — uptime checks, error tracking, usage analytics, cost alerts. Partly done: UptimeRobot is live, checking every 5 minutes with a verified email alert. Still open: error tracking (Sentry, needs an account + DSN), usage analytics (optional/low priority for this size of app), and a Fly.io billing alert (dashboard toggle, not code).
 6. [02-traffic-and-scaling.md](02-traffic-and-scaling.md) — what happens if a launch post spikes traffic
 
 **Nice to have / lower priority:**

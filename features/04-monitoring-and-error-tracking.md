@@ -2,8 +2,8 @@
 
 These are three different concerns, easy to conflate — do all three:
 
-## 1. Uptime monitoring
-Something external that pings the app and tells you when it's down. UptimeRobot or Better Uptime (both have free tiers) hitting `https://yourdomain.com/` every few minutes is enough.
+## 1. Uptime monitoring — ✅ done
+UptimeRobot is set up, monitoring `https://personalmovie.fly.dev/` every 5 minutes with an email alert contact attached. The alert path was verified by temporarily pointing the monitor at a broken URL, confirming it flipped to "Down" and sent the email, then pointing it back at the real URL — without ever touching the live production machine (stopping the actual Fly machine turned out not to work as a test, since `auto_start_machines = true` wakes it back up on the very next incoming request, including a monitor's own check).
 
 ## 2. Error tracking
 Different from uptime — this is "the app is up but throwing exceptions." Add Sentry's Python SDK (`sentry_sdk.init(...)` near the top of `app.py`) so unhandled exceptions in a user's session get reported instead of silently failing in their browser.

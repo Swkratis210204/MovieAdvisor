@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 
 import pandas as pd
+import sentry_sdk
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -15,6 +16,11 @@ from recommender import recommend
 from tmdb_client import TMDBClient, TMDBError
 
 load_dotenv()
+
+# Error tracking only (no tracing/profiling/logs — not needed at this app's
+# scale, and no PII/IP capture, to stay consistent with the app's own
+# "no visitor tracking" privacy promise below). No-op if SENTRY_DSN isn't set.
+sentry_sdk.init(dsn=os.getenv("SENTRY_DSN"), send_default_pii=False)
 
 st.set_page_config(page_title="Next 10 Movies", page_icon="🎬", layout="wide")
 

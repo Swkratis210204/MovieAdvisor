@@ -55,6 +55,15 @@ Leave `APP_PASSWORD` unset to keep the app fully open (the default).
 ### 6. Server secrets
 No server-side TMDB secret is required anymore for public use — each user supplies their own key at runtime. If you still want a fallback default key for convenience (e.g. for yourself), set `TMDB_API_KEY` as an environment variable/secret in the host's dashboard (`fly secrets set TMDB_API_KEY=...`), never in the Docker image itself.
 
+### 7. (Optional) Error tracking
+Set `SENTRY_DSN` as a server secret to enable error tracking via [Sentry](https://sentry.io) (free tier, no card required):
+
+```
+fly secrets set SENTRY_DSN=your_dsn_here -a personalmovie
+```
+
+Leave it unset to disable error tracking entirely — the app works fully without it. Configured with `send_default_pii=False` (`app.py`) so it doesn't capture visitor IPs/headers, consistent with the app's privacy notes.
+
 ## What you don't need
 
 - **No database.** Nothing persists server-side across sessions — each visitor's uploaded ratings CSV lives only in their own browser session's memory. Note: `fly.toml` sets `min_machines_running = 1` so that machine (and its in-memory session state) doesn't get killed by Fly's scale-to-zero between requests — without this, an idle visitor who reloads the page gets a brand-new process with their uploaded CSV gone, even though nothing in the app code changed. This costs a bit more than scale-to-zero (the machine never fully stops), which is the tradeoff for reload/idle-tolerant sessions.

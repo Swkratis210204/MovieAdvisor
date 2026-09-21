@@ -10,6 +10,8 @@
 
 This means pushing to `main` with a failing test no longer reaches production at all — you'll see a red X on the push in GitHub instead of a broken app going live. Manually running `fly deploy` from a laptop still bypasses this (it's a local command, not routed through CI), so prefer pushing to `main` and letting the workflow deploy over running `fly deploy` by hand from now on.
 
+## Confirmed working
+Pushed a commit with this workflow to `main` — the `test` job ran and passed, the `deploy` job then ran automatically (`needs: test`), and Fly release `v28` came out `complete`, serving `200`. The `FLY_API_TOKEN` secret was already set in the repo. The gate works end to end, not just in theory.
+
 ## Still to do
-1. Confirm the `FLY_API_TOKEN` secret is actually set in the repo (GitHub → Settings → Secrets and variables → Actions) — the workflow already referenced it before this change, so it's likely already there, but worth a quick check since I can't see GitHub secrets from here.
-2. Know the rollback command before you need it: `fly releases` lists past deploys, `fly deploy --image <previous-image-ref>` (or `fly apps releases rollback` depending on CLI version) reverts to a known-good one. Test this once on a non-critical change so it's not the first time you're doing it during an actual incident.
+Know the rollback command before you need it: `fly releases` lists past deploys, `fly deploy --image <previous-image-ref>` (or `fly apps releases rollback` depending on CLI version) reverts to a known-good one. Test this once on a non-critical change so it's not the first time you're doing it during an actual incident.
