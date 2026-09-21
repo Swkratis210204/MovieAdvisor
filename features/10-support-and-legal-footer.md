@@ -3,10 +3,9 @@
 ## What
 No way for a visitor to report a bug, ask a question, or flag misuse. No footer at all currently.
 
-## How
-Add a simple footer (`st.caption`/`st.markdown` at the bottom of `app.py`, shown on every tab) with:
-- A contact method: an email address, or a link to this repo's GitHub Issues page.
-- The TMDB attribution line (see 06-tmdb-attribution.md) — this is the natural place to put it.
-- A link to the privacy note (see 07-privacy-policy-and-tos.md), if that's a separate page rather than inline.
-
-Keep it to a couple of lines — this is a small personal tool, not a company site.
+## Done
+Footer added at the bottom of `app.py` (outside the tabs, so it shows everywhere) with:
+- A contact method: link to this repo's GitHub Issues page.
+- The TMDB attribution line (see 06-tmdb-attribution.md).
+- A "Privacy & data handling" expander (see 07-privacy-policy-and-tos.md).
+- A one-line **as-is/no-warranty disclaimer**: "This is a personal, hobby project provided as-is, with no warranty of any kind. Use at your own risk." Cheap insurance against liability now that this is a real public tool, not a blocker to shipping but worth having.
