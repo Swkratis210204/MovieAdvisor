@@ -57,7 +57,7 @@ No server-side TMDB secret is required anymore for public use — each user supp
 
 ## What you don't need
 
-- **No database.** Nothing persists server-side across sessions — each visitor's uploaded ratings CSV lives only in their own browser session's memory.
+- **No database.** Nothing persists server-side across sessions — each visitor's uploaded ratings CSV lives only in their own browser session's memory. Note: `fly.toml` sets `min_machines_running = 1` so that machine (and its in-memory session state) doesn't get killed by Fly's scale-to-zero between requests — without this, an idle visitor who reloads the page gets a brand-new process with their uploaded CSV gone, even though nothing in the app code changed. This costs a bit more than scale-to-zero (the machine never fully stops), which is the tradeoff for reload/idle-tolerant sessions.
 - **No Redis.** The TMDB cache holds no per-user data (just public movie metadata), so it's safe to share across all users on a single instance. Redis would only matter if you scaled to multiple app instances that needed to share that cache — not needed for this app's expected traffic.
 - **No load balancer / multiple replicas.** Streamlit keeps a live WebSocket connection per session; running more than one instance behind a load balancer needs sticky sessions to work correctly. One instance is enough for personal or small-group use.
 
