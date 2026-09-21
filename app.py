@@ -95,8 +95,9 @@ else:
     col2.metric("IMDb average (same films)", "N/A")
 col3.metric("Movies rated", len(df))
 
-def _movies_for(list_col: str, value: str) -> pd.DataFrame:
-    mask = df[list_col].apply(lambda v: value in split_list_field(v))
+def _movies_for(list_col: str, values: list[str]) -> pd.DataFrame:
+    values_set = set(values)
+    mask = df[list_col].apply(lambda v: bool(values_set & set(split_list_field(v))))
     return (
         df.loc[mask, ["title", "year", "your_rating"]]
         .sort_values("your_rating", ascending=False)
@@ -109,6 +110,7 @@ with pcol1:
     st.subheader("Top genres")
     top_genres = profile.top_genres(8)
     if top_genres:
+        st.caption("👇 Click the checkbox next to one or more genres to see which of your movies they are.")
         genre_df = pd.DataFrame(
             [{"Genre": a.name, "Avg Rating": round(a.avg_rating, 2), "Films": a.count} for a in top_genres]
         ).set_index("Genre")
@@ -116,14 +118,14 @@ with pcol1:
             genre_df,
             use_container_width=True,
             on_select="rerun",
-            selection_mode="single-row",
+            selection_mode="multi-row",
             key="genre_table",
         )
         selected_rows = event.selection.rows if event and event.selection else []
         if selected_rows:
-            genre_name = genre_df.index[selected_rows[0]]
-            st.caption(f"Movies you rated in **{genre_name}**:")
-            st.dataframe(_movies_for("genres", genre_name), use_container_width=True, hide_index=True)
+            genre_names = [genre_df.index[i] for i in selected_rows]
+            st.caption(f"Movies you rated in **{', '.join(genre_names)}**:")
+            st.dataframe(_movies_for("genres", genre_names), use_container_width=True, hide_index=True)
     else:
         st.write("Not enough genre data.")
 
@@ -131,6 +133,7 @@ with pcol2:
     st.subheader("Top directors (2+ films)")
     top_directors = profile.top_directors(8, min_films=2)
     if top_directors:
+        st.caption("👇 Click the checkbox next to one or more directors to see which of your movies they are.")
         dir_df = pd.DataFrame(
             [{"Director": a.name, "Avg Rating": round(a.avg_rating, 2), "Films": a.count} for a in top_directors]
         ).set_index("Director")
@@ -138,34 +141,34 @@ with pcol2:
             dir_df,
             use_container_width=True,
             on_select="rerun",
-            selection_mode="single-row",
+            selection_mode="multi-row",
             key="director_table",
         )
         selected_rows = event.selection.rows if event and event.selection else []
         if selected_rows:
-            director_name = dir_df.index[selected_rows[0]]
-            st.caption(f"Movies you rated by **{director_name}**:")
-            st.dataframe(_movies_for("directors", director_name), use_container_width=True, hide_index=True)
+            director_names = [dir_df.index[i] for i in selected_rows]
+            st.caption(f"Movies you rated by **{', '.join(director_names)}**:")
+            st.dataframe(_movies_for("directors", director_names), use_container_width=True, hide_index=True)
     else:
         st.write("No director has 2+ films yet.")
 
 st.subheader("Rating distribution")
 dist = df["your_rating"].value_counts().sort_index()
 st.bar_chart(dist, use_container_width=True)
+st.caption("👇 Pick one or more rating values to see which of your movies they are.")
 rating_options = sorted(dist.index, reverse=True)
-picked_rating = st.selectbox(
+picked_ratings = st.multiselect(
     "See the movies behind a bar",
     options=rating_options,
     format_func=lambda r: f"Rated {r:g} — {dist[r]} movie(s)",
-    index=None,
-    placeholder="Choose a rating...",
+    placeholder="Choose one or more ratings...",
 )
-if picked_rating is not None:
-    st.caption(f"Movies you rated **{picked_rating:g}**:")
+if picked_ratings:
+    st.caption(f"Movies you rated **{', '.join(f'{r:g}' for r in picked_ratings)}**:")
     rated_movies = (
-        df.loc[df["your_rating"] == picked_rating, ["title", "year"]]
-        .sort_values("title")
-        .rename(columns={"title": "Title", "year": "Year"})
+        df.loc[df["your_rating"].isin(picked_ratings), ["title", "year", "your_rating"]]
+        .sort_values(["your_rating", "title"], ascending=[False, True])
+        .rename(columns={"title": "Title", "year": "Year", "your_rating": "Your Rating"})
     )
     st.dataframe(rated_movies, use_container_width=True, hide_index=True)
 
